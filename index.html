@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataCraft Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+<style>
+:root {
+  --bg: #0d0d0b;
+  --bg2: #141412;
+  --bg3: #1c1c19;
+  --bg4: #242420;
+  --line: rgba(255,255,255,0.07);
+  --line2: rgba(255,255,255,0.12);
+  --ink: #f0ede8;
+  --ink2: #a8a49e;
+  --ink3: #6a6762;
+  --ink4: #3a3835;
+  --green: #4ade80;
+  --green-d: #166534;
+  --green-bg: rgba(74,222,128,0.08);
+  --red: #f87171;
+  --red-bg: rgba(248,113,113,0.08);
+  --gold: #fbbf24;
+  --gold-bg: rgba(251,191,36,0.08);
+  --accent: #4ade80;
+  --r: 10px;
+  --r2: 14px;
+  --sans: 'Sora', system-ui, sans-serif;
+  --serif: 'Lora', Georgia, serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--bg); color: var(--ink); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+/* ── TOAST ── */
+#toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg3); border: 1px solid var(--line2); border-radius: 10px; padding: 12px 20px; font-size: 13px; color: var(--ink); z-index: 9999; transform: translateY(80px); opacity: 0; transition: all .3s; pointer-events: none; }
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.success { border-color: rgba(74,222,128,0.3); color: var(--green); }
+#toast.error { border-color: rgba(248,113,113,0.3); color: var(--red); }
+
+/* ── NAV ── */
+nav { position: sticky; top: 0; z-index: 100; background: rgba(13,13,11,0.9); backdrop-filter: blur(16px); border-bottom: 1px solid var(--line); height: 56px; display: flex; align-items: center; padding: 0 24px; gap: 0; }
+.nav-logo { font-family: var(--serif); font-size: 18px; color: var(--ink); cursor: pointer; margin-right: auto; letter-spacing: -0.3px; }
+.nav-logo span { color: var(--green); font-style: italic; }
+.nav-links { display: flex; gap: 2px; }
+.nav-link { font-size: 13px; color: var(--ink3); padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: all .15s; font-weight: 400; }
+.nav-link:hover { color: var(--ink); background: var(--bg3); }
+.nav-link.active { color: var(--ink); }
+.nav-right { display: flex; align-items: center; gap: 10px; margin-left: 16px; }
+.btn { padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: var(--sans); transition: all .15s; }
+.btn-ghost { background: transparent; color: var(--ink2); border: 1px solid var(--line2); }
+.btn-ghost:hover { border-color: var(--line); color: var(--ink); background: var(--bg3); }
+.btn-green { background: var(--green); color: #000; font-weight: 600; }
+.btn-green:hover { background: #6ef598; transform: translateY(-1px); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.admin-badge { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; background: var(--gold-bg); color: var(--gold); border: 1px solid rgba(251,191,36,0.2); }
+
+/* ── PAGES ── */
+.page { display: none; animation: fadeUp .25s ease; }
+.page.active { display: block; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ══════════════════════════════════
+   HOME PAGE
+══════════════════════════════════ */
+.hero { padding: 72px 40px 60px; max-width: 720px; }
+.hero-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--green); margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+.hero-eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--green); }
+.hero h1 { font-family: var(--serif); font-size: clamp(36px, 5vw, 60px); line-height: 1.1; letter-spacing: -1px; margin-bottom: 18px; }
+.hero h1 em { font-style: italic; color: var(--green); }
+.hero-sub { font-size: 16px; color: var(--ink2); font-weight: 300; max-width: 480px; line-height: 1.7; margin-bottom: 32px; }
+.hero-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 56px; }
+.btn-hero { padding: 11px 24px; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: var(--sans); transition: all .15s; border: none; }
+.btn-hero-primary { background: var(--green); color: #000; font-weight: 600; }
+.btn-hero-primary:hover { background: #6ef598; transform: translateY(-1px); }
+.btn-hero-outline { background: transparent; color: var(--ink); border: 1px solid var(--line2); }
+.btn-hero-outline:hover { background: var(--bg3); border-color: var(--line); }
+.hero-stats { display: flex; gap: 40px; padding-top: 32px; border-top: 1px solid var(--line); }
+.stat-n { font-family: var(--serif); font-size: 30px; color: var(--ink); display: block; line-height: 1; margin-bottom: 3px; }
+.stat-l { font-size: 11px; color: var(--ink3); font-weight: 400; }
+
+/* FEED */
+.feed-layout { display: grid; grid-template-columns: 1fr 300px; gap: 0; border-top: 1px solid var(--line); min-height: 60vh; }
+.feed-main { border-right: 1px solid var(--line); padding: 32px 40px; }
+.feed-sidebar { padding: 28px 24px; }
+.feed-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+.fpill { font-size: 12px; padding: 5px 14px; border-radius: 20px; border: 1px solid var(--line); color: var(--ink3); cursor: pointer; transition: all .15s; background: transparent; font-family: var(--sans); }
+.fpill:hover { border-color: var(--line2); color: var(--ink); }
+.fpill.on { background: var(--green); color: #000; border-color: transparent; font-weight: 600; }
+
+/* POST CARD */
+.post-card { border: 1px solid var(--line); border-radius: var(--r2); padding: 24px; margin-bottom: 14px; cursor: pointer; transition: all .2s; background: var(--bg2); position: relative; }
+.post-card:hover { border-color: var(--line2); transform: translateY(-2px); background: var(--bg3); }
+.post-card.featured { border-color: rgba(74,222,128,0.25); background: rgba(74,222,128,0.04); }
+.post-card.featured::before { content: '★ Featured'; position: absolute; top: 16px; right: 16px; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--green); background: var(--green-bg); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(74,222,128,0.2); }
+.post-top { display: flex; align-items: flex-start; gap: 16px; }
+.vote-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; min-width: 44px; }
+.vote-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg3); color: var(--ink3); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all .15s; font-family: var(--sans); }
+.vote-btn:hover { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+.vote-btn.voted-up { background: var(--green-bg); border-color: rgba(74,222,128,0.4); color: var(--green); }
+.vote-btn.voted-down { background: var(--red-bg); border-color: rgba(248,113,113,0.4); color: var(--red); }
+.vote-score { font-size: 14px; font-weight: 600; color: var(--ink); font-family: var(--mono); }
+.vote-score.positive { color: var(--green); }
+.vote-score.negative { color: var(--red); }
+.post-info { flex: 1; }
+.post-cats { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.cat-tag { font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; }
+.post-title { font-family: var(--serif); font-size: 18px; line-height: 1.25; margin-bottom: 8px; color: var(--ink); font-weight: 600; }
+.post-excerpt { font-size: 13px; color: var(--ink2); line-height: 1.6; margin-bottom: 14px; font-weight: 300; }
+.post-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.post-meta { display: flex; align-items: center; gap: 14px; font-size: 12px; color: var(--ink3); }
+.post-meta span { display: flex; align-items: center; gap: 4px; }
+.post-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.post-tag { font-size: 10px; font-family: var(--mono); padding: 2px 8px; border-radius: 4px; background: var(--bg4); color: var(--ink3); border: 1px solid var(--line); }
+
+/* SIDEBAR */
+.sidebar-block { background: var(--bg2); border: 1px solid var(--line); border-radius: var(--r2); padding: 18px; margin-bottom: 14px; }
+.sb-title { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink3); margin-bottom: 14px; }
+.trending-item { padding: 8px 0; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; gap: 10px; cursor: pointer; transition: color .15s; }
+.trending-item:last-child { border-bottom: none; }
+.trending-item:hover .t-title { color: var(--green); }
+.t-rank { font-family: var(--mono); font-size: 11px; color: var(--ink4); min-width: 18px; margin-top: 2px; }
+.t-title { font-size: 12px; color: var(--ink2); line-height: 1.4; font-weight: 400; }
+.t-score { font-size: 11px; color: var(--ink3); font-family: var(--mono); margin-top: 3px; }
+
+/* ══════════════════════════════════
+   ARTICLE PAGE
+══════════════════════════════════ */
+.article-wrap { max-width: 1100px; margin: 0 auto; }
+.article-header { padding: 48px 40px 36px; border-bottom: 1px solid var(--line); }
+.breadcrumb { font-size: 12px; color: var(--ink3); margin-bottom: 20px; display: flex; gap: 6px; align-items: center; }
+.breadcrumb span { cursor: pointer; transition: color .15s; }
+.breadcrumb span:hover { color: var(--green); }
+.article-cats { display: flex; gap: 6px; margin-bottom: 14px; }
+.article-title { font-family: var(--serif); font-size: clamp(26px, 4vw, 40px); line-height: 1.15; letter-spacing: -0.5px; margin-bottom: 14px; font-weight: 600; }
+.article-sub { font-size: 16px; color: var(--ink2); line-height: 1.6; margin-bottom: 20px; font-weight: 300; max-width: 680px; }
+.article-meta-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; font-size: 12px; color: var(--ink3); margin-bottom: 16px; }
+.article-vote-row { display: flex; align-items: center; gap: 12px; padding: 16px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-top: 4px; }
+.article-vote-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg3); color: var(--ink2); cursor: pointer; font-size: 13px; font-weight: 500; font-family: var(--sans); transition: all .15s; }
+.article-vote-btn:hover { border-color: var(--line2); color: var(--ink); }
+.article-vote-btn.voted-up { background: var(--green-bg); border-color: rgba(74,222,128,0.3); color: var(--green); }
+.article-vote-btn.voted-down { background: var(--red-bg); border-color: rgba(248,113,113,0.3); color: var(--red); }
+.vote-count { font-family: var(--mono); }
+
+.article-layout { display: grid; grid-template-columns: 1fr 260px; gap: 0; }
+.article-body { padding: 40px 40px 60px; border-right: 1px solid var(--line); }
+.article-body h2 { font-family: var(--serif); font-size: 22px; margin: 36px 0 14px; letter-spacing: -0.2px; color: var(--ink); }
+.article-body h3 { font-size: 15px; font-weight: 600; margin: 24px 0 10px; color: var(--ink); }
+.article-body p { font-size: 15px; line-height: 1.8; color: var(--ink2); margin-bottom: 16px; font-weight: 300; }
+.article-body ul, .article-body ol { padding-left: 22px; margin-bottom: 16px; }
+.article-body li { font-size: 15px; line-height: 1.7; color: var(--ink2); margin-bottom: 6px; font-weight: 300; }
+.article-body strong { font-weight: 600; color: var(--ink); }
+.article-body code { font-family: var(--mono); font-size: 13px; background: var(--bg4); padding: 2px 6px; border-radius: 4px; color: var(--green); }
+.callout { background: var(--green-bg); border-left: 3px solid var(--green); border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 20px 0; font-size: 14px; color: var(--green); line-height: 1.6; }
+.warn { background: var(--gold-bg); border-left: 3px solid var(--gold); border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 20px 0; font-size: 14px; color: var(--gold); line-height: 1.6; }
+.code-block { background: #0a0a08; border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin: 20px 0; overflow-x: auto; }
+.code-block pre { font-family: var(--mono); font-size: 12px; color: #a8d8a8; line-height: 1.7; }
+.data-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; }
+.data-table th { background: var(--bg3); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line2); font-size: 11px; color: var(--ink2); text-transform: uppercase; letter-spacing: .04em; }
+.data-table td { padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--ink2); font-weight: 300; }
+.data-table td:first-child { font-family: var(--mono); font-size: 12px; color: var(--green); }
+.badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-family: var(--mono); }
+.badge-pk { background: rgba(74,222,128,0.15); color: var(--green); }
+.badge-fk { background: rgba(96,165,250,0.15); color: #60a5fa; }
+.badge-sk { background: rgba(251,191,36,0.15); color: var(--gold); }
+
+.article-sidebar { padding: 32px 24px; position: sticky; top: 72px; height: fit-content; }
+.as-block { margin-bottom: 28px; }
+.as-label { font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--ink4); margin-bottom: 12px; }
+.toc-item { display: block; font-size: 12px; color: var(--ink3); padding: 5px 0 5px 12px; border-left: 2px solid var(--line); margin-bottom: 2px; cursor: pointer; transition: all .15s; }
+.toc-item:hover, .toc-item.on { color: var(--green); border-color: var(--green); }
+.dl-btn { display: block; text-align: center; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; margin-bottom: 8px; font-family: var(--sans); border: none; }
+.dl-primary { background: var(--green); color: #000; }
+.dl-primary:hover { background: #6ef598; }
+.dl-outline { background: transparent; color: var(--ink2); border: 1px solid var(--line2); }
+.dl-outline:hover { background: var(--bg3); color: var(--ink); }
+
+/* ══════════════════════════════════
+   COMMENTS
+══════════════════════════════════ */
+.comments-section { padding: 40px; border-top: 1px solid var(--line); }
+.comments-header { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+.comments-title { font-family: var(--serif); font-size: 22px; }
+.comments-count { font-size: 13px; color: var(--ink3); background: var(--bg3); padding: 3px 10px; border-radius: 20px; border: 1px solid var(--line); }
+.comment-form { background: var(--bg2); border: 1px solid var(--line); border-radius: var(--r2); padding: 20px; margin-bottom: 28px; }
+.comment-form-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.commenter-name { font-size: 13px; font-weight: 500; color: var(--ink); }
+.commenter-hint { font-size: 11px; color: var(--ink3); }
+.comment-input { width: 100%; background: var(--bg3); border: 1px solid var(--line2); border-radius: 8px; padding: 12px 14px; color: var(--ink); font-size: 14px; font-family: var(--sans); resize: vertical; min-height: 90px; outline: none; transition: border-color .15s; }
+.comment-input:focus { border-color: rgba(74,222,128,0.4); }
+.comment-input::placeholder { color: var(--ink4); }
+.name-row { display: flex; gap: 10px; margin-bottom: 10px; }
+.name-input { flex: 1; background: var(--bg3); border: 1px solid var(--line2); border-radius: 8px; padding: 9px 14px; color: var(--ink); font-size: 13px; font-family: var(--sans); outline: none; transition: border-color .15s; }
+.name-input:focus { border-color: rgba(74,222,128,0.4); }
+.name-input::placeholder { color: var(--ink4); }
+.comment-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+.comment-submit { padding: 9px 22px; background: var(--green); color: #000; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--sans); transition: all .15s; }
+.comment-submit:hover { background: #6ef598; }
+.comment-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.comments-list { display: flex; flex-direction: column; gap: 16px; }
+.comment-card { background: var(--bg2); border: 1px solid var(--line); border-radius: var(--r2); padding: 18px; }
+.comment-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.comment-author { display: flex; align-items: center; gap: 10px; }
+.comment-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+.comment-time { font-size: 11px; color: var(--ink4); }
+.comment-text { font-size: 14px; color: var(--ink2); line-height: 1.65; font-weight: 300; }
+.comment-vote-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.cv-btn { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--ink3); cursor: pointer; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); background: transparent; font-family: var(--sans); transition: all .15s; }
+.cv-btn:hover { border-color: var(--line2); color: var(--ink); }
+.cv-btn.up { color: var(--green); border-color: rgba(74,222,128,0.25); background: var(--green-bg); }
+.cv-btn.down { color: var(--red); border-color: rgba(248,113,113,0.25); background: var(--red-bg); }
+.cv-score { font-family: var(--mono); font-size: 11px; color: var(--ink3); }
+.comment-delete { font-size: 11px; color: var(--ink4); cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: all .15s; border: none; background: transparent; font-family: var(--sans); }
+.comment-delete:hover { color: var(--red); background: var(--red-bg); }
+.no-comments { text-align: center; padding: 40px; color: var(--ink3); font-size: 14px; }
+.no-comments-icon { font-size: 32px; margin-bottom: 10px; }
+
+/* ══════════════════════════════════
+   ADMIN PANEL
+══════════════════════════════════ */
+.admin-wrap { max-width: 900px; margin: 0 auto; padding: 40px; }
+.admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+.admin-title { font-family: var(--serif); font-size: 28px; }
+.admin-subtitle { font-size: 13px; color: var(--ink3); margin-top: 4px; }
+.admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.admin-col {}
+
+/* EDITOR */
+.editor-card { background: var(--bg2); border: 1px solid var(--line); border-radius: var(--r2); overflow: hidden; }
+.editor-toolbar { display: flex; align-items: center; gap: 4px; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tb-btn { width: 28px; height: 28px; border-radius: 5px; border: none; background: transparent; color: var(--ink3); cursor: pointer; font-size: 13px; font-weight: 600; font-family: var(--sans); display: flex; align-items: center; justify-content: center; transition: all .12s; }
+.tb-btn:hover { background: var(--bg4); color: var(--ink); }
+.tb-sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
+.editor-area { padding: 16px; }
+.editor-input { width: 100%; background: transparent; border: none; color: var(--ink); font-size: 14px; font-family: var(--sans); resize: none; outline: none; line-height: 1.7; }
+.editor-input::placeholder { color: var(--ink4); }
+
+/* FORM FIELDS */
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--ink3); margin-bottom: 6px; display: block; }
+.form-input { width: 100%; background: var(--bg3); border: 1px solid var(--line2); border-radius: 8px; padding: 10px 14px; color: var(--ink); font-size: 14px; font-family: var(--sans); outline: none; transition: border-color .15s; }
+.form-input:focus { border-color: rgba(74,222,128,0.4); }
+.form-input::placeholder { color: var(--ink4); }
+.form-select { width: 100%; background: var(--bg3); border: 1px solid var(--line2); border-radius: 8px; padding: 10px 14px; color: var(--ink); font-size: 13px; font-family: var(--sans); outline: none; cursor: pointer; }
+.form-select option { background: var(--bg3); }
+.form-textarea { width: 100%; background: var(--bg3); border: 1px solid var(--line2); border-radius: 8px; padding: 10px 14px; color: var(--ink); font-size: 14px; font-family: var(--sans); resize: vertical; min-height: 80px; outline: none; line-height: 1.6; transition: border-color .15s; }
+.form-textarea:focus { border-color: rgba(74,222,128,0.4); }
+.form-textarea::placeholder { color: var(--ink4); }
+
+.toggle-group { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.toggle-group:last-child { border-bottom: none; }
+.toggle-label { font-size: 13px; color: var(--ink); }
+.toggle-sub { font-size: 11px; color: var(--ink3); margin-top: 2px; }
+.toggle { width: 40px; height: 22px; background: var(--bg4); border-radius: 11px; cursor: pointer; position: relative; transition: background .2s; border: none; flex-shrink: 0; }
+.toggle.on { background: var(--green); }
+.toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #000; transition: transform .2s; }
+.toggle.on::after { transform: translateX(18px); }
+
+.publish-btn { width: 100%; padding: 13px; background: var(--green); color: #000; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--sans); transition: all .15s; letter-spacing: .01em; }
+.publish-btn:hover { background: #6ef598; transform: translateY(-1px); }
+.publish-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* POSTS MANAGER */
+.posts-manager { background: var(--bg2); border: 1px solid var(--line); border-radius: var(--r2); overflow: hidden; }
+.pm-header { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+.pm-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+.pm-count { font-size: 11px; color: var(--ink4); font-family: var(--mono); }
+.pm-list { max-height: 400px; overflow-y: auto; }
+.pm-item { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; gap: 14px; }
+.pm-item:last-child { border-bottom: none; }
+.pm-item-info { flex: 1; }
+.pm-item-title { font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 4px; line-height: 1.3; cursor: pointer; }
+.pm-item-title:hover { color: var(--green); }
+.pm-item-meta { font-size: 11px; color: var(--ink4); display: flex; gap: 10px; }
+.pm-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.pm-btn { padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 500; cursor: pointer; border: 1px solid var(--line); background: transparent; font-family: var(--sans); color: var(--ink3); transition: all .15s; }
+.pm-btn:hover { color: var(--ink); border-color: var(--line2); }
+.pm-btn.delete:hover { color: var(--red); border-color: rgba(248,113,113,0.3); background: var(--red-bg); }
+.pm-empty { padding: 40px; text-align: center; color: var(--ink4); font-size: 13px; }
+
+/* STAT CARDS */
+.stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.stat-card { background: var(--bg3); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.stat-card-n { font-family: var(--mono); font-size: 24px; color: var(--green); font-weight: 500; }
+.stat-card-l { font-size: 11px; color: var(--ink3); margin-top: 3px; }
+
+/* LOGIN */
+.login-wrap { max-width: 360px; margin: 80px auto; padding: 0 20px; }
+.login-card { background: var(--bg2); border: 1px solid var(--line); border-radius: var(--r2); padding: 36px; }
+.login-title { font-family: var(--serif); font-size: 24px; margin-bottom: 6px; }
+.login-sub { font-size: 13px; color: var(--ink3); margin-bottom: 28px; }
+.login-error { font-size: 13px; color: var(--red); background: var(--red-bg); border: 1px solid rgba(248,113,113,0.2); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: none; }
+
+/* LOADING */
+.loading { display: flex; align-items: center; justify-content: center; padding: 60px; }
+.spinner { width: 28px; height: 28px; border: 2px solid var(--line); border-top-color: var(--green); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--ink3); }
+.empty-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
+.empty-title { font-size: 16px; color: var(--ink2); margin-bottom: 6px; font-weight: 500; }
+.empty-sub { font-size: 13px; font-weight: 300; }
+
+/* CATEGORY COLORS */
+.cat-pbi { background: rgba(74,222,128,0.12); color: #4ade80; }
+.cat-hr { background: rgba(251,191,36,0.12); color: #fbbf24; }
+.cat-dm { background: rgba(96,165,250,0.12); color: #60a5fa; }
+.cat-sql { background: rgba(167,139,250,0.12); color: #a78bfa; }
+.cat-excel { background: rgba(34,211,238,0.12); color: #22d3ee; }
+.cat-python { background: rgba(249,115,22,0.12); color: #f97316; }
+.cat-other { background: rgba(160,160,160,0.12); color: #a0a0a0; }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--bg2); border: 1px solid var(--line2); border-radius: var(--r2); padding: 28px; max-width: 420px; width: 90%; }
+.modal-title { font-family: var(--serif); font-size: 20px; margin-bottom: 8px; }
+.modal-sub { font-size: 13px; color: var(--ink3); margin-bottom: 20px; line-height: 1.5; }
+.modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* MOBILE */
+@media (max-width: 768px) {
+  nav { padding: 0 16px; }
+  .nav-links { display: none; }
+  .hero { padding: 48px 20px 40px; }
+  .hero h1 { font-size: 32px; }
+  .hero-stats { gap: 24px; }
+  .feed-layout { grid-template-columns: 1fr; }
+  .feed-sidebar { display: none; }
+  .feed-main { padding: 20px 16px; }
+  .article-layout { grid-template-columns: 1fr; }
+  .article-sidebar { display: none; }
+  .article-header { padding: 32px 20px 24px; }
+  .article-body { padding: 28px 20px 48px; border-right: none; }
+  .comments-section { padding: 28px 20px; }
+  .admin-wrap { padding: 24px 16px; }
+  .admin-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Confirm</div>
+    <div class="modal-sub" id="modal-sub">Are you sure?</div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="modal-confirm" style="background:#f87171;color:#000;font-weight:600">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo" onclick="goHome()">Data<span>Craft</span> Hub</div>
+  <div class="nav-links">
+    <div class="nav-link active" id="nl-home" onclick="goHome()">Home</div>
+    <div class="nav-link" id="nl-topics" onclick="goTopics()">Topics</div>
+    <div class="nav-link" id="nl-resources" onclick="goResources()">Resources</div>
+    <div class="nav-link" id="nl-about" onclick="goAbout()">About</div>
+  </div>
+  <div class="nav-right" id="nav-right">
+    <span class="admin-badge" id="admin-badge" style="display:none">Admin</span>
+    <button class="btn btn-ghost btn-sm" id="admin-btn" onclick="goAdmin()" style="display:none">Admin panel</button>
+    <button class="btn btn-ghost btn-sm" id="logout-btn" onclick="doLogout()" style="display:none">Log out</button>
+    <button class="btn btn-ghost btn-sm" id="login-btn" onclick="goLogin()">Admin login</button>
+  </div>
+</nav>
+
+<!-- ══════════ HOME ══════════ -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <div class="hero-eyebrow">Real projects · Real skills</div>
+    <h1>Learn analytics by<br><em>building</em> real things</h1>
+    <p class="hero-sub">Deep-dive project guides for Power BI, HR analytics, data modelling and more. Free templates included.</p>
+    <div class="hero-btns">
+      <button class="btn-hero btn-hero-primary" onclick="scrollFeed()">Browse projects</button>
+      <button class="btn-hero btn-hero-outline" onclick="goResources()">Free downloads</button>
+    </div>
+    <div class="hero-stats">
+      <div><span class="stat-n" id="stat-posts">–</span><span class="stat-l">Project guides</span></div>
+      <div><span class="stat-n">6</span><span class="stat-l">Topics</span></div>
+      <div><span class="stat-n">Free</span><span class="stat-l">All templates</span></div>
+    </div>
+  </div>
+
+  <div class="feed-layout" id="feed-section">
+    <div class="feed-main">
+      <div class="feed-filters">
+        <button class="fpill on" onclick="filterFeed('all',this)">All</button>
+        <button class="fpill" onclick="filterFeed('Power BI',this)">Power BI</button>
+        <button class="fpill" onclick="filterFeed('HR Analytics',this)">HR Analytics</button>
+        <button class="fpill" onclick="filterFeed('Data Modelling',this)">Data Modelling</button>
+        <button class="fpill" onclick="filterFeed('SQL',this)">SQL</button>
+        <button class="fpill" onclick="filterFeed('Excel',this)">Excel</button>
+        <button class="fpill" onclick="filterFeed('Python',this)">Python</button>
+      </div>
+      <div id="posts-feed">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+    <div class="feed-sidebar">
+      <div class="sidebar-block">
+        <div class="sb-title">Trending</div>
+        <div id="trending-list"><div class="loading" style="padding:20px"><div class="spinner"></div></div></div>
+      </div>
+      <div class="sidebar-block">
+        <div class="sb-title">Topics</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div onclick="filterFeed('Power BI',null)" style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:12px;color:var(--ink2)" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--ink2)'"><span>Power BI</span><span style="color:var(--ink4);font-family:var(--mono)" id="count-pbi">–</span></div>
+          <div onclick="filterFeed('HR Analytics',null)" style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:12px;color:var(--ink2)" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--ink2)'"><span>HR Analytics</span><span style="color:var(--ink4);font-family:var(--mono)" id="count-hr">–</span></div>
+          <div onclick="filterFeed('Data Modelling',null)" style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:12px;color:var(--ink2)" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--ink2)'"><span>Data Modelling</span><span style="color:var(--ink4);font-family:var(--mono)" id="count-dm">–</span></div>
+          <div onclick="filterFeed('SQL',null)" style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:12px;color:var(--ink2)" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--ink2)'"><span>SQL</span><span style="color:var(--ink4);font-family:var(--mono)" id="count-sql">–</span></div>
+          <div onclick="filterFeed('Excel',null)" style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:12px;color:var(--ink2)" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--ink2)'"><span>Excel</span><span style="color:var(--ink4);font-family:var(--mono)" id="count-excel">–</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ ARTICLE ══════════ -->
+<div class="page" id="page-article">
+  <div class="article-wrap">
+    <div class="article-header">
+      <div class="breadcrumb">
+        <span onclick="goHome()">Home</span>
+        <span style="color:var(--ink4)">/</span>
+        <span id="art-breadcrumb-cat" onclick="goHome()">Projects</span>
+        <span style="color:var(--ink4)">/</span>
+        <span id="art-breadcrumb-title" style="color:var(--ink2)">Article</span>
+      </div>
+      <div class="article-cats" id="art-cats"></div>
+      <div class="article-title" id="art-title">Loading...</div>
+      <div class="article-sub" id="art-excerpt"></div>
+      <div class="article-meta-row">
+        <span id="art-date"></span>
+        <span id="art-read"></span>
+        <span id="art-level"></span>
+      </div>
+      <div class="article-vote-row">
+        <button class="article-vote-btn" id="art-upvote" onclick="voteArticle('up')">▲ <span class="vote-count" id="art-up-count">0</span> upvotes</button>
+        <button class="article-vote-btn" id="art-downvote" onclick="voteArticle('down')">▼ <span class="vote-count" id="art-down-count">0</span></button>
+        <span style="font-size:12px;color:var(--ink4);margin-left:4px" id="art-score-label"></span>
+      </div>
+    </div>
+    <div class="article-layout">
+      <div>
+        <div class="article-body" id="art-body">Loading...</div>
+        <div class="comments-section" id="comments-section">
+          <div class="comments-header">
+            <div class="comments-title">Discussion</div>
+            <div class="comments-count" id="comments-count">0 comments</div>
+          </div>
+          <div class="comment-form">
+            <div class="name-row">
+              <input class="name-input" id="cmnt-name" placeholder="Your name (or anonymous)">
+              <input class="name-input" id="cmnt-email" placeholder="Email (optional, not shown)" style="flex:1.2">
+            </div>
+            <textarea class="comment-input" id="cmnt-text" placeholder="Share a thought, ask a question, or add to the discussion..."></textarea>
+            <div class="comment-actions">
+              <button class="comment-submit" id="cmnt-submit" onclick="submitComment()">Post comment</button>
+            </div>
+          </div>
+          <div class="comments-list" id="comments-list">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="article-sidebar">
+        <div class="as-block">
+          <div class="as-label">In this guide</div>
+          <div id="toc-list"></div>
+        </div>
+        <div class="as-block" id="art-downloads-block" style="display:none">
+          <div class="as-label">Downloads</div>
+          <div id="art-downloads"></div>
+        </div>
+        <div class="as-block">
+          <div class="as-label">Was this helpful?</div>
+          <div style="font-size:12px;color:var(--ink3);line-height:1.5">Vote above to help others find the best content. Comments are open for questions and discussion.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TOPICS ══════════ -->
+<div class="page" id="page-topics">
+  <div class="hero" style="padding-bottom:40px">
+    <div class="hero-eyebrow">All content</div>
+    <h1>Browse all <em>topics</em></h1>
+    <p class="hero-sub">Every guide, filtered by topic. Each is a real project with downloadable files.</p>
+  </div>
+  <div style="padding:0 40px 60px">
+    <div class="feed-filters" style="margin-bottom:24px">
+      <button class="fpill on" onclick="filterFeed('all',this)">All</button>
+      <button class="fpill" onclick="filterFeed('Power BI',this)">Power BI</button>
+      <button class="fpill" onclick="filterFeed('HR Analytics',this)">HR Analytics</button>
+      <button class="fpill" onclick="filterFeed('Data Modelling',this)">Data Modelling</button>
+      <button class="fpill" onclick="filterFeed('SQL',this)">SQL</button>
+      <button class="fpill" onclick="filterFeed('Excel',this)">Excel</button>
+      <button class="fpill" onclick="filterFeed('Python',this)">Python</button>
+    </div>
+    <div id="topics-feed">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ RESOURCES ══════════ -->
+<div class="page" id="page-resources">
+  <div class="hero" style="padding-bottom:36px">
+    <div class="hero-eyebrow">All free</div>
+    <h1>Free <em>downloads</em></h1>
+    <p class="hero-sub">Templates, cheat sheets, and Power BI files. No paywall.</p>
+  </div>
+  <div style="padding:0 40px 60px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px" id="resources-grid">
+    <div class="post-card" style="cursor:default">
+      <div class="post-title" style="font-size:15px">HR Dashboard .pbix</div>
+      <div class="post-excerpt">Full Power BI file with star schema, DAX measures and report pages.</div>
+      <button class="btn btn-green btn-sm" style="margin-top:12px" onclick="toast('Download link will open after email verification','success')">Download free ↓</button>
+    </div>
+    <div class="post-card" style="cursor:default">
+      <div class="post-title" style="font-size:15px">DAX Cheat Sheet .pdf</div>
+      <div class="post-excerpt">30 essential DAX patterns with syntax, examples and plain-English explanations.</div>
+      <button class="btn btn-green btn-sm" style="margin-top:12px" onclick="toast('Download link will open after email verification','success')">Download free ↓</button>
+    </div>
+    <div class="post-card" style="cursor:default">
+      <div class="post-title" style="font-size:15px">Star Schema Blueprint .xlsx</div>
+      <div class="post-excerpt">Template for planning dim/fact tables, relationships, and surrogate key mapping.</div>
+      <button class="btn btn-green btn-sm" style="margin-top:12px" onclick="toast('Download link will open after email verification','success')">Download free ↓</button>
+    </div>
+    <div class="post-card" style="cursor:default">
+      <div class="post-title" style="font-size:15px">Power Query M Patterns .pdf</div>
+      <div class="post-excerpt">20 Power Query M patterns: surrogate keys, column mapping, merges and error handling.</div>
+      <button class="btn btn-green btn-sm" style="margin-top:12px" onclick="toast('Download link will open after email verification','success')">Download free ↓</button>
+    </div>
+    <div class="post-card" style="cursor:default">
+      <div class="post-title" style="font-size:15px">Client Config Template .xlsx</div>
+      <div class="post-excerpt">Config file for the HR dashboard — fiscal year, currency, dept mapping, module toggles.</div>
+      <button class="btn btn-green btn-sm" style="margin-top:12px" onclick="toast('Download link will open after email verification','success')">Download free ↓</button>
+    </div>
+    <div class="post-card" style="cursor:default">
+      <div class="post-title" style="font-size:15px">Attrition Dashboard .pbix</div>
+      <div class="post-excerpt">Starter template with monthly trend, voluntary/involuntary split and cohort analysis.</div>
+      <button class="btn btn-green btn-sm" style="margin-top:12px" onclick="toast('Download link will open after email verification','success')">Download free ↓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ ABOUT ══════════ -->
+<div class="page" id="page-about">
+  <div class="hero">
+    <div class="hero-eyebrow">Our mission</div>
+    <h1>Built by analysts,<br>for <em>analysts</em></h1>
+    <p class="hero-sub">DataCraft Hub exists because most tutorials teach features, not projects. Every guide here is a complete, real-world build — with files you can use immediately.</p>
+  </div>
+  <div style="padding:0 40px 60px;display:grid;grid-template-columns:1fr 1fr;gap:40px;max-width:900px">
+    <div>
+      <h3 style="font-family:var(--serif);font-size:20px;margin-bottom:12px;color:var(--ink)">What makes this different</h3>
+      <p style="font-size:14px;color:var(--ink2);line-height:1.7;font-weight:300">Every guide covers the full stack: problem, architecture, data model, code, and deployment. Nothing skipped. All files — Power BI templates, blueprints, cheat sheets — are free.</p>
+    </div>
+    <div>
+      <h3 style="font-family:var(--serif);font-size:20px;margin-bottom:12px;color:var(--ink)">Who it's for</h3>
+      <p style="font-size:14px;color:var(--ink2);line-height:1.7;font-weight:300">Working professionals who want to go from "can make reports" to "can architect solutions." And students who want a portfolio they can actually show an employer — not textbook exercises.</p>
+    </div>
+    <div>
+      <h3 style="font-family:var(--serif);font-size:20px;margin-bottom:12px;color:var(--ink)">Community first</h3>
+      <p style="font-size:14px;color:var(--ink2);line-height:1.7;font-weight:300">Every guide has open comments — ask questions, share improvements, correct mistakes. Votes surface the best content. The community makes every guide better over time.</p>
+    </div>
+    <div>
+      <h3 style="font-family:var(--serif);font-size:20px;margin-bottom:12px;color:var(--ink)">What's coming</h3>
+      <p style="font-size:14px;color:var(--ink2);line-height:1.7;font-weight:300">Sales analytics, Finance dashboards, a complete SQL curriculum, Python for HR data, and eventually a full learning path from zero to deployed analyst dashboard in a day.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ LOGIN ══════════ -->
+<div class="page" id="page-login">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-title">Admin access</div>
+      <div class="login-sub">Sign in to publish and manage content</div>
+      <div class="login-error" id="login-error"></div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="login-email" placeholder="admin@yoursite.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="publish-btn" id="login-btn-submit" onclick="doLogin()">Sign in</button>
+      <p style="font-size:12px;color:var(--ink4);text-align:center;margin-top:14px">Only the site admin can log in. Readers can comment without an account.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ ADMIN ══════════ -->
+<div class="page" id="page-admin">
+  <div class="admin-wrap">
+    <div class="admin-header">
+      <div>
+        <div class="admin-title">Admin panel</div>
+        <div class="admin-subtitle">Publish new content and manage existing posts</div>
+      </div>
+      <div class="stats-row" style="margin-bottom:0">
+        <div class="stat-card"><div class="stat-card-n" id="admin-stat-posts">–</div><div class="stat-card-l">Total posts</div></div>
+        <div class="stat-card"><div class="stat-card-n" id="admin-stat-comments">–</div><div class="stat-card-l">Total comments</div></div>
+      </div>
+    </div>
+
+    <div class="admin-grid">
+      <!-- LEFT: EDITOR -->
+      <div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px">New post</div>
+
+        <div class="form-group">
+          <label class="form-label">Title *</label>
+          <input class="form-input" id="post-title" placeholder="e.g. HR Analysis Dashboard — complete build guide">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Excerpt (shown in feed)</label>
+          <textarea class="form-textarea" id="post-excerpt" placeholder="1–2 sentences. What will readers learn from this?" style="min-height:60px"></textarea>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group">
+            <label class="form-label">Category *</label>
+            <select class="form-select" id="post-cat">
+              <option value="">Select category</option>
+              <option>Power BI</option>
+              <option>HR Analytics</option>
+              <option>Data Modelling</option>
+              <option>SQL</option>
+              <option>Excel</option>
+              <option>Python</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Difficulty</label>
+            <select class="form-select" id="post-level">
+              <option>Beginner</option>
+              <option>Intermediate</option>
+              <option>Advanced</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Tags (comma separated)</label>
+          <input class="form-input" id="post-tags" placeholder="Power BI, DAX, star schema, HR">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Read time</label>
+          <input class="form-input" id="post-read" placeholder="e.g. 30 min read">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Download links (one per line)</label>
+          <textarea class="form-textarea" id="post-downloads" placeholder="HR Dashboard.pbix | https://link.com&#10;DAX Cheat Sheet.pdf | https://link.com" style="min-height:70px"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Full content (HTML supported) *</label>
+          <div class="editor-card">
+            <div class="editor-toolbar">
+              <button class="tb-btn" onclick="fmt('bold')" title="Bold"><b>B</b></button>
+              <button class="tb-btn" onclick="fmt('italic')" title="Italic"><i>I</i></button>
+              <div class="tb-sep"></div>
+              <button class="tb-btn" onclick="insertTag('h2')" title="Heading">H2</button>
+              <button class="tb-btn" onclick="insertTag('h3')" title="Sub-heading">H3</button>
+              <div class="tb-sep"></div>
+              <button class="tb-btn" onclick="insertSnippet('ul')" title="List">≡</button>
+              <button class="tb-btn" onclick="insertSnippet('callout')" title="Callout">📌</button>
+              <button class="tb-btn" onclick="insertSnippet('code')" title="Code block">&lt;/&gt;</button>
+              <button class="tb-btn" onclick="insertSnippet('table')" title="Table">⊞</button>
+              <div class="tb-sep"></div>
+              <button class="tb-btn" onclick="togglePreview()" title="Preview" id="preview-btn" style="font-size:11px;width:auto;padding:0 8px">Preview</button>
+            </div>
+            <div class="editor-area">
+              <textarea class="editor-input" id="post-content" placeholder="Write your full guide here. HTML is supported.&#10;&#10;Use &lt;h2&gt; for main sections, &lt;h3&gt; for sub-sections, &lt;p&gt; for paragraphs.&#10;&#10;Tip: Use the toolbar above for quick formatting." rows="16"></textarea>
+              <div id="content-preview" style="display:none;font-size:14px;line-height:1.7;color:var(--ink2);padding:8px 0;min-height:200px"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:16px">
+          <div class="toggle-group">
+            <div><div class="toggle-label">Featured post</div><div class="toggle-sub">Shown with green highlight at top of feed</div></div>
+            <button class="toggle" id="tog-featured" onclick="toggleBtn(this)"></button>
+          </div>
+          <div class="toggle-group">
+            <div><div class="toggle-label">Published</div><div class="toggle-sub">Unpublished posts are hidden from readers</div></div>
+            <button class="toggle on" id="tog-published" onclick="toggleBtn(this)"></button>
+          </div>
+        </div>
+
+        <button class="publish-btn" id="publish-btn" onclick="publishPost()">Publish post</button>
+        <button class="publish-btn" id="update-btn" onclick="updatePost()" style="display:none;background:var(--gold);color:#000">Update post</button>
+        <button class="btn btn-ghost" id="cancel-edit-btn" onclick="cancelEdit()" style="display:none;width:100%;margin-top:8px">Cancel edit</button>
+
+        <div id="preview-modal" style="display:none;margin-top:20px;background:var(--bg2);border:1px solid var(--line2);border-radius:var(--r2);padding:24px">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:16px">Preview</div>
+          <div id="preview-content" class="article-body" style="padding:0"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: MANAGER -->
+      <div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px">Published posts</div>
+        <div class="posts-manager">
+          <div class="pm-header">
+            <div class="pm-title">All posts</div>
+            <div class="pm-count" id="pm-count">loading...</div>
+          </div>
+          <div class="pm-list" id="pm-list">
+            <div class="pm-empty">Loading posts...</div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px">Recent comments</div>
+        <div class="posts-manager">
+          <div class="pm-list" id="admin-comments-list" style="max-height:300px">
+            <div class="pm-empty">Loading comments...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════ -->
+<script>
+// ── FIREBASE CONFIG ──
+// IMPORTANT: Replace these values with your own Firebase project config
+// Get it from: Firebase Console → Project Settings → Your Apps → Web App
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+// ── DEMO MODE ──
+// When Firebase is not yet configured, use local demo data
+let DEMO_MODE = (firebaseConfig.apiKey === "YOUR_API_KEY");
+
+let db, auth, currentUser = null, currentPostId = null, editingPostId = null;
+let allPosts = [], activeFilter = 'all', currentArticleVote = null;
+
+// Demo posts for when Firebase not yet configured
+const DEMO_POSTS = [
+  {
+    id: 'demo-1',
+    title: 'HR Analysis Dashboard — scalable for any client, any industry',
+    excerpt: 'Build a production-grade HR dashboard from scratch. Star schema, surrogate keys, SCD Type 2, DAX measures, and Row-Level Security.',
+    category: 'HR Analytics',
+    tags: ['Power BI','Star schema','DAX','RLS','SCD Type 2'],
+    level: 'Intermediate',
+    readTime: '45 min read',
+    featured: true,
+    published: true,
+    upvotes: 47,
+    downvotes: 2,
+    commentCount: 8,
+    createdAt: { toDate: () => new Date('2025-04-01') },
+    content: `<h2>Problem statement</h2>
+<p>Every HR team wants the same thing: a dashboard showing headcount, attrition, diversity, manager performance and workforce stability — in one place, always up to date.</p>
+<div class="callout"><strong>What you'll build:</strong> A fully scalable HR dashboard covering headcount, attrition, diversity, manager analytics, job level mix, and stability — driven by a universal data model that works for any company.</div>
+<h2>Step 1 — Design the data model</h2>
+<p>The star schema is the foundation. Use a central fact table with dimension tables radiating outwards. Never mix grain — one fact table = one level of detail.</p>
+<h3>Core tables</h3>
+<table class="data-table"><thead><tr><th>Table</th><th>Type</th><th>Key</th></tr></thead><tbody><tr><td>Dim_Employee</td><td>Dimension · SCD2</td><td><span class="badge badge-sk">SK</span> Emp_Key</td></tr><tr><td>Fact_Events</td><td>Fact</td><td><span class="badge badge-pk">PK</span> Event_ID</td></tr><tr><td>Dim_Date</td><td>Dimension</td><td><span class="badge badge-pk">PK</span> Date</td></tr></tbody></table>
+<h2>Step 2 — Surrogate keys in Power Query</h2>
+<div class="code-block"><pre>// Add surrogate key — Power Query M
+let
+    Source = Excel.Workbook(...),
+    AddedKey = Table.AddIndexColumn(
+        Source, "Emp_Key", 1001, 1, Int64.Type
+    )
+in AddedKey</pre></div>
+<h2>Step 3 — Core DAX measures</h2>
+<div class="code-block"><pre>-- Attrition %
+Attrition % =
+DIVIDE(
+    CALCULATE(SUM(Fact_Events[Event_Count]),
+        Fact_Events[Event_Type] = "Resign"),
+    [Avg HC Period], 0
+) * 100</pre></div>
+<div class="warn"><strong>Critical:</strong> Never build relationships on client IDs. Always generate your own surrogate integer key.</div>
+<h2>Step 4 — Row-Level Security</h2>
+<p>One report, multiple access levels. Define RLS roles in Power BI Desktop, assign users in Power BI Service.</p>
+<ul><li><strong>HR Admin:</strong> No filter — sees everything</li><li><strong>Manager role:</strong> <code>Dim_Employee[Manager_Email] = USERPRINCIPALNAME()</code></li></ul>`
+  },
+  {
+    id: 'demo-2',
+    title: 'Keys, relationships & star schema — the definitive guide',
+    excerpt: 'Primary keys, foreign keys, surrogate keys, cardinality and SCD Type 2 explained with visuals and worked examples.',
+    category: 'Data Modelling',
+    tags: ['Star schema','Keys','Relationships','SCD Type 2'],
+    level: 'Beginner',
+    readTime: '30 min read',
+    featured: false,
+    published: true,
+    upvotes: 31,
+    downvotes: 1,
+    commentCount: 4,
+    createdAt: { toDate: () => new Date('2025-03-15') },
+    content: `<h2>Types of keys</h2><p>Every Power BI model is built on three types of keys. Understanding each one is the foundation of a model that never breaks.</p><h3>Primary key (PK)</h3><p>Uniquely identifies each row in a table. Example: <code>Employee_ID</code> in <code>Dim_Employee</code>. Every dimension table must have exactly one PK column.</p><h3>Foreign key (FK)</h3><p>References a PK in another table. Example: <code>Emp_Key</code> in <code>Fact_Events</code>. The FK side of a relationship always has cardinality "Many".</p><h3>Surrogate key (SK)</h3><p>System-generated integer, independent of client data. Never trust client IDs alone — they have duplicates, changed IDs, and merges from multiple systems.</p><div class="callout"><strong>Rule:</strong> Always build relationships on your surrogate key, never on client IDs.</div>`
+  },
+  {
+    id: 'demo-3',
+    title: '30 essential DAX measures every analyst must know',
+    excerpt: 'From CALCULATE to time intelligence — 30 DAX patterns with syntax, examples and plain-English explanations.',
+    category: 'Power BI',
+    tags: ['DAX','CALCULATE','Time intelligence','Power BI'],
+    level: 'Intermediate',
+    readTime: '25 min read',
+    featured: false,
+    published: true,
+    upvotes: 55,
+    downvotes: 3,
+    commentCount: 12,
+    createdAt: { toDate: () => new Date('2025-03-28') },
+    content: `<h2>The CALCULATE pattern</h2><p>CALCULATE is the most powerful function in DAX. It evaluates an expression in a modified filter context.</p><div class="code-block"><pre>-- Basic pattern
+Measure =
+CALCULATE(
+    [Base Measure],
+    Filter1,
+    Filter2
+)</pre></div><h2>YOY Growth</h2><div class="code-block"><pre>HC Growth YOY =
+VAR CurrentHC = [Total HC]
+VAR LastYearHC = CALCULATE([Total HC],
+    SAMEPERIODLASTYEAR(Dim_Date[Date]))
+RETURN DIVIDE(CurrentHC - LastYearHC, LastYearHC, 0)</pre></div>`
+  }
+];
+
+const DEMO_COMMENTS = {
+  'demo-1': [
+    { id: 'c1', name: 'Sarah K.', text: 'This is exactly what I needed. The SCD Type 2 section finally made it click for me. Been struggling with this for months!', upvotes: 8, downvotes: 0, createdAt: { toDate: () => new Date('2025-04-02') } },
+    { id: 'c2', name: 'Mohammed A.', text: 'Great guide. Question: does the RLS approach work when the same person is a manager in multiple departments?', upvotes: 3, downvotes: 0, createdAt: { toDate: () => new Date('2025-04-03') } },
+    { id: 'c3', name: 'Priya R.', text: 'The surrogate key explanation is gold. I made this mistake on my last project and it caused endless problems. Wish I had read this first.', upvotes: 12, downvotes: 0, createdAt: { toDate: () => new Date('2025-04-04') } }
+  ],
+  'demo-2': [
+    { id: 'c4', name: 'Ahmed N.', text: 'Clear and practical. Could you add a section on many-to-many relationships and how to handle them with bridge tables?', upvotes: 5, downvotes: 0, createdAt: { toDate: () => new Date('2025-03-20') } }
+  ],
+  'demo-3': [
+    { id: 'c5', name: 'Fatima L.', text: 'The CALCULATE breakdown is perfect. Please do a follow-up on RANKX and TOPN — always get confused by those.', upvotes: 7, downvotes: 0, createdAt: { toDate: () => new Date('2025-03-30') } }
+  ]
+};
+
+// ── INIT ──
+if (!DEMO_MODE) {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  auth = firebase.auth();
+  auth.onAuthStateChanged(user => {
+    currentUser = user;
+    updateNavAuth();
+    if (user && document.getElementById('page-admin').classList.contains('active')) loadAdminData();
+  });
+}
+
+window.addEventListener('load', () => {
+  updateNavAuth();
+  loadFeed();
+  loadTrending();
+  updateStats();
+});
+
+// ── NAVIGATION ──
+function setPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  const map = { home:'nl-home', topics:'nl-topics', resources:'nl-resources', about:'nl-about' };
+  if (map[id]) document.getElementById(map[id]).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function goHome() { setPage('home'); loadFeed(); loadTrending(); }
+function goTopics() { setPage('topics'); loadTopicsFeed(); }
+function goResources() { setPage('resources'); }
+function goAbout() { setPage('about'); }
+function goLogin() { setPage('login'); }
+function goAdmin() {
+  if (!currentUser && !DEMO_MODE) { goLogin(); return; }
+  setPage('admin');
+  loadAdminData();
+}
+function scrollFeed() { document.getElementById('feed-section').scrollIntoView({ behavior: 'smooth' }); }
+
+// ── AUTH ──
+function updateNavAuth() {
+  const isAdmin = currentUser || DEMO_MODE;
+  document.getElementById('admin-badge').style.display = isAdmin ? 'inline-block' : 'none';
+  document.getElementById('admin-btn').style.display = isAdmin ? 'inline-block' : 'none';
+  document.getElementById('logout-btn').style.display = currentUser ? 'inline-block' : 'none';
+  document.getElementById('login-btn').style.display = currentUser ? 'none' : 'inline-block';
+}
+async function doLogin() {
+  if (DEMO_MODE) { toast('Demo mode: Firebase not configured yet. See setup guide below.','error'); return; }
+  const email = document.getElementById('login-email').value;
+  const pass = document.getElementById('login-pass').value;
+  document.getElementById('login-btn-submit').disabled = true;
+  document.getElementById('login-error').style.display = 'none';
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+    goAdmin();
+  } catch (e) {
+    document.getElementById('login-error').textContent = 'Invalid email or password.';
+    document.getElementById('login-error').style.display = 'block';
+  }
+  document.getElementById('login-btn-submit').disabled = false;
+}
+async function doLogout() {
+  if (!DEMO_MODE) await auth.signOut();
+  currentUser = null;
+  updateNavAuth();
+  goHome();
+  toast('Signed out');
+}
+
+// ── POSTS ──
+async function getPosts() {
+  if (DEMO_MODE) return DEMO_POSTS.filter(p => p.published);
+  const snap = await db.collection('posts').where('published','==',true).orderBy('createdAt','desc').get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function getAllPostsAdmin() {
+  if (DEMO_MODE) return DEMO_POSTS;
+  const snap = await db.collection('posts').orderBy('createdAt','desc').get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+function getCatClass(cat) {
+  const m = { 'Power BI':'pbi','HR Analytics':'hr','Data Modelling':'dm','SQL':'sql','Excel':'excel','Python':'python' };
+  return 'cat-' + (m[cat] || 'other');
+}
+
+function renderPostCard(post) {
+  const score = (post.upvotes||0) - (post.downvotes||0);
+  const scoreClass = score > 0 ? 'positive' : score < 0 ? 'negative' : '';
+  const tags = (post.tags||[]).slice(0,4).map(t => `<span class="post-tag">${t}</span>`).join('');
+  const date = post.createdAt?.toDate ? post.createdAt.toDate().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
+  return `<div class="post-card ${post.featured?'featured':''}" onclick="openArticle('${post.id}')">
+    <div class="post-top">
+      <div class="vote-col">
+        <div class="vote-score ${scoreClass}">${score}</div>
+        <div style="font-size:9px;color:var(--ink4);text-align:center;font-family:var(--mono)">pts</div>
+      </div>
+      <div class="post-info">
+        <div class="post-cats"><span class="cat-tag ${getCatClass(post.category)}">${post.category||'Uncategorised'}</span></div>
+        <div class="post-title">${post.title}</div>
+        <div class="post-excerpt">${post.excerpt||''}</div>
+        <div class="post-footer">
+          <div class="post-meta">
+            <span>📅 ${date}</span>
+            ${post.readTime ? `<span>⏱ ${post.readTime}</span>` : ''}
+            ${post.level ? `<span>◈ ${post.level}</span>` : ''}
+            <span>💬 ${post.commentCount||0}</span>
+          </div>
+          <div class="post-tags">${tags}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function loadFeed() {
+  document.getElementById('posts-feed').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  allPosts = await getPosts();
+  renderFeed(allPosts, 'posts-feed');
+  updateStats();
+}
+
+function renderFeed(posts, containerId) {
+  const el = document.getElementById(containerId);
+  const filtered = activeFilter === 'all' ? posts : posts.filter(p => p.category === activeFilter);
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">No posts yet in this topic</div><div class="empty-sub">Check back soon or browse all topics</div></div>`;
+    return;
+  }
+  const sorted = [...filtered].sort((a,b) => {
+    if (a.featured && !b.featured) return -1;
+    if (!a.featured && b.featured) return 1;
+    return ((b.upvotes||0)-(b.downvotes||0)) - ((a.upvotes||0)-(a.downvotes||0));
+  });
+  el.innerHTML = sorted.map(renderPostCard).join('');
+}
+
+function filterFeed(topic, el) {
+  activeFilter = topic;
+  document.querySelectorAll('.fpill').forEach(p => p.classList.remove('on'));
+  if (el) el.classList.add('on');
+  renderFeed(allPosts, 'posts-feed');
+  if (document.getElementById('topics-feed')) renderFeed(allPosts, 'topics-feed');
+}
+
+async function loadTopicsFeed() {
+  if (!allPosts.length) allPosts = await getPosts();
+  renderFeed(allPosts, 'topics-feed');
+}
+
+async function loadTrending() {
+  const posts = allPosts.length ? allPosts : await getPosts();
+  const sorted = [...posts].sort((a,b) => ((b.upvotes||0)-(b.downvotes||0)) - ((a.upvotes||0)-(a.downvotes||0))).slice(0,5);
+  document.getElementById('trending-list').innerHTML = sorted.map((p,i) => `
+    <div class="trending-item" onclick="openArticle('${p.id}')">
+      <div class="t-rank">${i+1}</div>
+      <div><div class="t-title">${p.title}</div><div class="t-score">▲ ${(p.upvotes||0)-(p.downvotes||0)} pts · ${p.commentCount||0} comments</div></div>
+    </div>`).join('');
+  // Topic counts
+  const cats = { pbi:'Power BI', hr:'HR Analytics', dm:'Data Modelling', sql:'SQL', excel:'Excel' };
+  Object.entries(cats).forEach(([k,v]) => {
+    const el = document.getElementById('count-'+k);
+    if (el) el.textContent = posts.filter(p => p.category === v).length;
+  });
+}
+
+function updateStats() {
+  const n = allPosts.length;
+  const el = document.getElementById('stat-posts');
+  if (el) el.textContent = n || '–';
+}
+
+// ── ARTICLE ──
+async function openArticle(id) {
+  setPage('article');
+  currentPostId = id;
+  currentArticleVote = localStorage.getItem('vote_' + id);
+
+  let post;
+  if (DEMO_MODE) {
+    post = DEMO_POSTS.find(p => p.id === id);
+  } else {
+    const doc = await db.collection('posts').doc(id).get();
+    post = { id: doc.id, ...doc.data() };
+  }
+  if (!post) return;
+
+  document.getElementById('art-title').textContent = post.title;
+  document.getElementById('art-excerpt').textContent = post.excerpt||'';
+  document.getElementById('art-breadcrumb-cat').textContent = post.category||'Projects';
+  document.getElementById('art-breadcrumb-title').textContent = post.title.length > 40 ? post.title.slice(0,40)+'…' : post.title;
+  document.getElementById('art-cats').innerHTML = `<span class="cat-tag ${getCatClass(post.category)}">${post.category||''}</span>`;
+  const date = post.createdAt?.toDate ? post.createdAt.toDate().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
+  document.getElementById('art-date').textContent = '📅 ' + date;
+  document.getElementById('art-read').textContent = post.readTime ? '⏱ ' + post.readTime : '';
+  document.getElementById('art-level').textContent = post.level ? '◈ ' + post.level : '';
+  document.getElementById('art-body').innerHTML = post.content||'<p>Content coming soon.</p>';
+  document.getElementById('art-up-count').textContent = post.upvotes||0;
+  document.getElementById('art-down-count').textContent = post.downvotes||0;
+  updateArticleVoteUI();
+
+  // Downloads
+  if (post.downloads && post.downloads.length) {
+    document.getElementById('art-downloads-block').style.display = 'block';
+    document.getElementById('art-downloads').innerHTML = post.downloads.map(d => {
+      const [label, url] = d.split('|').map(s => s.trim());
+      return `<a class="dl-btn dl-primary" href="${url||'#'}" target="_blank">${label||'Download'} ↓</a>`;
+    }).join('');
+  } else {
+    document.getElementById('art-downloads-block').style.display = 'none';
+  }
+
+  // TOC
+  const headings = document.getElementById('art-body').querySelectorAll('h2,h3');
+  document.getElementById('toc-list').innerHTML = [...headings].map((h,i) => {
+    const isH3 = h.tagName === 'H3';
+    return `<span class="toc-item" style="${isH3?'padding-left:20px;font-size:11px':''}" onclick="scrollToHeading(${i})">${h.textContent}</span>`;
+  }).join('');
+
+  loadComments(id);
+}
+
+function scrollToHeading(i) {
+  const h = document.getElementById('art-body').querySelectorAll('h2,h3')[i];
+  if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── VOTING ──
+async function voteArticle(dir) {
+  const prev = localStorage.getItem('vote_' + currentPostId);
+  if (prev === dir) { toast('You already voted this way', ''); return; }
+
+  if (!DEMO_MODE) {
+    const inc = {};
+    if (prev) inc[prev === 'up' ? 'upvotes' : 'downvotes'] = firebase.firestore.FieldValue.increment(-1);
+    inc[dir === 'up' ? 'upvotes' : 'downvotes'] = firebase.firestore.FieldValue.increment(1);
+    await db.collection('posts').doc(currentPostId).update(inc);
+  }
+
+  const post = DEMO_MODE ? DEMO_POSTS.find(p => p.id === currentPostId) : null;
+  if (DEMO_MODE && post) {
+    if (prev) { if (prev === 'up') post.upvotes--; else post.downvotes--; }
+    if (dir === 'up') post.upvotes = (post.upvotes||0)+1;
+    else post.downvotes = (post.downvotes||0)+1;
+    document.getElementById('art-up-count').textContent = post.upvotes;
+    document.getElementById('art-down-count').textContent = post.downvotes;
+  }
+
+  localStorage.setItem('vote_' + currentPostId, dir);
+  currentArticleVote = dir;
+  updateArticleVoteUI();
+  toast(dir === 'up' ? 'Thanks for the upvote!' : 'Thanks for the feedback', 'success');
+}
+
+function updateArticleVoteUI() {
+  document.getElementById('art-upvote').className = 'article-vote-btn' + (currentArticleVote === 'up' ? ' voted-up' : '');
+  document.getElementById('art-downvote').className = 'article-vote-btn' + (currentArticleVote === 'down' ? ' voted-down' : '');
+}
+
+// ── COMMENTS ──
+async function loadComments(postId) {
+  document.getElementById('comments-list').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  let comments;
+  if (DEMO_MODE) {
+    comments = DEMO_COMMENTS[postId] || [];
+  } else {
+    const snap = await db.collection('posts').doc(postId).collection('comments').orderBy('createdAt','desc').get();
+    comments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }
+  document.getElementById('comments-count').textContent = `${comments.length} comment${comments.length !== 1 ? 's' : ''}`;
+  if (!comments.length) {
+    document.getElementById('comments-list').innerHTML = `<div class="no-comments"><div class="no-comments-icon">💬</div>Be the first to comment. Questions, insights, improvements — all welcome.</div>`;
+    return;
+  }
+  document.getElementById('comments-list').innerHTML = comments.map(c => renderComment(c, postId)).join('');
+}
+
+function renderComment(c, postId) {
+  const date = c.createdAt?.toDate ? c.createdAt.toDate().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'Just now';
+  const initials = (c.name||'A').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const colors = ['#4ade80','#60a5fa','#fbbf24','#a78bfa','#f97316','#22d3ee'];
+  const color = colors[c.name ? c.name.charCodeAt(0) % colors.length : 0];
+  const isAdmin = currentUser || DEMO_MODE;
+  const cvote = localStorage.getItem('cvote_' + c.id);
+  const score = (c.upvotes||0) - (c.downvotes||0);
+  return `<div class="comment-card" id="comment-${c.id}">
+    <div class="comment-top">
+      <div class="comment-author">
+        <div class="avatar" style="background:${color}20;color:${color}">${initials}</div>
+        <div><div class="comment-name">${c.name||'Anonymous'}</div><div class="comment-time">${date}</div></div>
+      </div>
+      ${isAdmin ? `<button class="comment-delete" onclick="deleteComment('${postId}','${c.id}')">Delete</button>` : ''}
+    </div>
+    <div class="comment-text">${c.text}</div>
+    <div class="comment-vote-row">
+      <button class="cv-btn ${cvote==='up'?'up':''}" onclick="voteComment('${postId}','${c.id}','up')">▲ ${c.upvotes||0}</button>
+      <button class="cv-btn ${cvote==='down'?'down':''}" onclick="voteComment('${postId}','${c.id}','down')">▼ ${c.downvotes||0}</button>
+      ${score > 0 ? `<span class="cv-score" style="color:var(--green)">+${score}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+async function submitComment() {
+  const name = document.getElementById('cmnt-name').value.trim() || 'Anonymous';
+  const text = document.getElementById('cmnt-text').value.trim();
+  if (!text) { toast('Please write a comment first', 'error'); return; }
+
+  document.getElementById('cmnt-submit').disabled = true;
+  document.getElementById('cmnt-submit').textContent = 'Posting...';
+
+  const comment = {
+    name,
+    text,
+    upvotes: 0,
+    downvotes: 0,
+    createdAt: { toDate: () => new Date() }
+  };
+
+  if (DEMO_MODE) {
+    comment.id = 'c' + Date.now();
+    if (!DEMO_COMMENTS[currentPostId]) DEMO_COMMENTS[currentPostId] = [];
+    DEMO_COMMENTS[currentPostId].unshift(comment);
+    const post = DEMO_POSTS.find(p => p.id === currentPostId);
+    if (post) post.commentCount = (post.commentCount||0) + 1;
+  } else {
+    const ref = await db.collection('posts').doc(currentPostId).collection('comments').add({
+      name, text, upvotes: 0, downvotes: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    comment.id = ref.id;
+    await db.collection('posts').doc(currentPostId).update({
+      commentCount: firebase.firestore.FieldValue.increment(1)
+    });
+  }
+
+  document.getElementById('cmnt-text').value = '';
+  document.getElementById('cmnt-submit').disabled = false;
+  document.getElementById('cmnt-submit').textContent = 'Post comment';
+  loadComments(currentPostId);
+  toast('Comment posted!', 'success');
+}
+
+async function voteComment(postId, commentId, dir) {
+  const prev = localStorage.getItem('cvote_' + commentId);
+  if (prev === dir) return;
+
+  if (!DEMO_MODE) {
+    const ref = db.collection('posts').doc(postId).collection('comments').doc(commentId);
+    const inc = {};
+    if (prev) inc[prev === 'up' ? 'upvotes' : 'downvotes'] = firebase.firestore.FieldValue.increment(-1);
+    inc[dir === 'up' ? 'upvotes' : 'downvotes'] = firebase.firestore.FieldValue.increment(1);
+    await ref.update(inc);
+  }
+
+  localStorage.setItem('cvote_' + commentId, dir);
+  loadComments(postId);
+}
+
+async function deleteComment(postId, commentId) {
+  showConfirmModal('Delete comment', 'This comment will be permanently deleted.', async () => {
+    if (!DEMO_MODE) {
+      await db.collection('posts').doc(postId).collection('comments').doc(commentId).delete();
+      await db.collection('posts').doc(postId).update({ commentCount: firebase.firestore.FieldValue.increment(-1) });
+    } else {
+      if (DEMO_COMMENTS[postId]) {
+        DEMO_COMMENTS[postId] = DEMO_COMMENTS[postId].filter(c => c.id !== commentId);
+      }
+    }
+    loadComments(postId);
+    toast('Comment deleted', 'success');
+    closeModal();
+  });
+}
+
+// ── ADMIN ──
+async function loadAdminData() {
+  const posts = await getAllPostsAdmin();
+  document.getElementById('admin-stat-posts').textContent = posts.length;
+  document.getElementById('pm-count').textContent = posts.length + ' posts';
+
+  if (!posts.length) {
+    document.getElementById('pm-list').innerHTML = '<div class="pm-empty">No posts yet. Create your first one!</div>';
+  } else {
+    document.getElementById('pm-list').innerHTML = posts.map(p => `
+      <div class="pm-item">
+        <div class="pm-item-info">
+          <div class="pm-item-title" onclick="openArticle('${p.id}')">${p.title}</div>
+          <div class="pm-item-meta">
+            <span>${p.category||'–'}</span>
+            <span>▲${p.upvotes||0} ▼${p.downvotes||0}</span>
+            <span>💬 ${p.commentCount||0}</span>
+            <span>${p.published ? '✓ Published' : '○ Draft'}</span>
+          </div>
+        </div>
+        <div class="pm-actions">
+          <button class="pm-btn" onclick="editPost('${p.id}')">Edit</button>
+          <button class="pm-btn delete" onclick="confirmDeletePost('${p.id}')">Delete</button>
+        </div>
+      </div>`).join('');
+  }
+
+  // Load recent comments across all posts
+  let allComments = [];
+  if (DEMO_MODE) {
+    Object.entries(DEMO_COMMENTS).forEach(([pid, cs]) => cs.forEach(c => allComments.push({ ...c, postId: pid })));
+  } else {
+    for (const post of posts.slice(0,5)) {
+      const snap = await db.collection('posts').doc(post.id).collection('comments').orderBy('createdAt','desc').limit(3).get();
+      snap.docs.forEach(d => allComments.push({ id: d.id, postId: post.id, ...d.data() }));
+    }
+  }
+  document.getElementById('admin-stat-comments').textContent = allComments.length;
+  if (!allComments.length) {
+    document.getElementById('admin-comments-list').innerHTML = '<div class="pm-empty">No comments yet</div>';
+  } else {
+    document.getElementById('admin-comments-list').innerHTML = allComments.slice(0,10).map(c => `
+      <div class="pm-item">
+        <div class="pm-item-info">
+          <div class="pm-item-title" style="cursor:default">${c.name||'Anonymous'}</div>
+          <div style="font-size:12px;color:var(--ink3);margin-bottom:4px;font-weight:300">${c.text.slice(0,80)}${c.text.length>80?'…':''}</div>
+          <div class="pm-item-meta"><span>▲${c.upvotes||0}</span></div>
+        </div>
+        <button class="pm-btn delete" onclick="deleteComment('${c.postId}','${c.id}')">Delete</button>
+      </div>`).join('');
+  }
+}
+
+async function publishPost() {
+  const title = document.getElementById('post-title').value.trim();
+  const content = document.getElementById('post-content').value.trim();
+  const category = document.getElementById('post-cat').value;
+  if (!title || !content || !category) { toast('Title, category and content are required', 'error'); return; }
+
+  document.getElementById('publish-btn').disabled = true;
+  document.getElementById('publish-btn').textContent = 'Publishing...';
+
+  const tags = document.getElementById('post-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const downloadsRaw = document.getElementById('post-downloads').value.trim();
+  const downloads = downloadsRaw ? downloadsRaw.split('\n').map(l=>l.trim()).filter(Boolean) : [];
+
+  const post = {
+    title,
+    content,
+    excerpt: document.getElementById('post-excerpt').value.trim(),
+    category,
+    level: document.getElementById('post-level').value,
+    readTime: document.getElementById('post-read').value.trim(),
+    tags,
+    downloads,
+    featured: document.getElementById('tog-featured').classList.contains('on'),
+    published: document.getElementById('tog-published').classList.contains('on'),
+    upvotes: 0,
+    downvotes: 0,
+    commentCount: 0
+  };
+
+  if (DEMO_MODE) {
+    post.id = 'post-' + Date.now();
+    post.createdAt = { toDate: () => new Date() };
+    DEMO_POSTS.unshift(post);
+    toast('Post published! (Demo mode — connect Firebase to persist)', 'success');
+  } else {
+    post.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+    await db.collection('posts').add(post);
+    toast('Post published!', 'success');
+  }
+
+  clearEditor();
+  allPosts = [];
+  loadAdminData();
+  document.getElementById('publish-btn').disabled = false;
+  document.getElementById('publish-btn').textContent = 'Publish post';
+}
+
+function editPost(id) {
+  const post = DEMO_MODE ? DEMO_POSTS.find(p=>p.id===id) : null;
+  if (!post && DEMO_MODE) return;
+  editingPostId = id;
+  document.getElementById('post-title').value = post.title||'';
+  document.getElementById('post-excerpt').value = post.excerpt||'';
+  document.getElementById('post-cat').value = post.category||'';
+  document.getElementById('post-level').value = post.level||'Beginner';
+  document.getElementById('post-read').value = post.readTime||'';
+  document.getElementById('post-tags').value = (post.tags||[]).join(', ');
+  document.getElementById('post-downloads').value = (post.downloads||[]).join('\n');
+  document.getElementById('post-content').value = post.content||'';
+  if (post.featured) document.getElementById('tog-featured').classList.add('on');
+  else document.getElementById('tog-featured').classList.remove('on');
+  if (post.published) document.getElementById('tog-published').classList.add('on');
+  else document.getElementById('tog-published').classList.remove('on');
+  document.getElementById('publish-btn').style.display = 'none';
+  document.getElementById('update-btn').style.display = 'block';
+  document.getElementById('cancel-edit-btn').style.display = 'block';
+  document.querySelector('.admin-col').scrollIntoView({ behavior:'smooth' });
+  toast('Editing: ' + post.title.slice(0,40)+'…');
+}
+
+async function updatePost() {
+  if (!editingPostId) return;
+  const title = document.getElementById('post-title').value.trim();
+  const content = document.getElementById('post-content').value.trim();
+  const category = document.getElementById('post-cat').value;
+  if (!title || !content || !category) { toast('Title, category and content are required','error'); return; }
+  document.getElementById('update-btn').disabled = true;
+  document.getElementById('update-btn').textContent = 'Updating...';
+
+  const tags = document.getElementById('post-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const downloads = document.getElementById('post-downloads').value.trim().split('\n').map(l=>l.trim()).filter(Boolean);
+  const updates = {
+    title, content,
+    excerpt: document.getElementById('post-excerpt').value.trim(),
+    category,
+    level: document.getElementById('post-level').value,
+    readTime: document.getElementById('post-read').value.trim(),
+    tags, downloads,
+    featured: document.getElementById('tog-featured').classList.contains('on'),
+    published: document.getElementById('tog-published').classList.contains('on'),
+  };
+
+  if (DEMO_MODE) {
+    const idx = DEMO_POSTS.findIndex(p=>p.id===editingPostId);
+    if (idx >= 0) Object.assign(DEMO_POSTS[idx], updates);
+  } else {
+    await db.collection('posts').doc(editingPostId).update(updates);
+  }
+
+  toast('Post updated!','success');
+  cancelEdit();
+  allPosts = [];
+  loadAdminData();
+}
+
+function cancelEdit() {
+  editingPostId = null;
+  clearEditor();
+  document.getElementById('publish-btn').style.display = 'block';
+  document.getElementById('update-btn').style.display = 'none';
+  document.getElementById('cancel-edit-btn').style.display = 'none';
+  document.getElementById('update-btn').disabled = false;
+  document.getElementById('update-btn').textContent = 'Update post';
+}
+
+function clearEditor() {
+  ['post-title','post-excerpt','post-tags','post-read','post-downloads','post-content'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('post-cat').value = '';
+  document.getElementById('post-level').value = 'Beginner';
+  document.getElementById('tog-featured').classList.remove('on');
+  document.getElementById('tog-published').classList.add('on');
+}
+
+function confirmDeletePost(id) {
+  showConfirmModal('Delete post', 'This will permanently delete the post and all its comments. This cannot be undone.', async () => {
+    if (DEMO_MODE) {
+      const idx = DEMO_POSTS.findIndex(p=>p.id===id);
+      if (idx>=0) DEMO_POSTS.splice(idx,1);
+    } else {
+      await db.collection('posts').doc(id).delete();
+    }
+    allPosts = [];
+    loadAdminData();
+    toast('Post deleted','success');
+    closeModal();
+  });
+}
+
+// ── EDITOR HELPERS ──
+function fmt(cmd) {
+  const ta = document.getElementById('post-content');
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const sel = ta.value.slice(start, end);
+  const tags = { bold: ['<strong>','</strong>'], italic: ['<em>','</em>'] };
+  const [o, c] = tags[cmd];
+  ta.value = ta.value.slice(0,start) + o + (sel||'text') + c + ta.value.slice(end);
+}
+
+function insertTag(tag) {
+  const ta = document.getElementById('post-content');
+  const pos = ta.selectionStart;
+  const snippet = `\n<${tag}>Heading</${tag}>\n`;
+  ta.value = ta.value.slice(0,pos) + snippet + ta.value.slice(pos);
+}
+
+const SNIPPETS = {
+  ul: '\n<ul>\n  <li>Item one</li>\n  <li>Item two</li>\n  <li>Item three</li>\n</ul>\n',
+  callout: '\n<div class="callout"><strong>Key insight:</strong> Your important point here.</div>\n',
+  code: '\n<div class="code-block"><pre>// Your code here\nconst example = true;</pre></div>\n',
+  table: '\n<table class="data-table"><thead><tr><th>Column 1</th><th>Column 2</th><th>Column 3</th></tr></thead><tbody><tr><td>Row 1</td><td>Value</td><td>Value</td></tr></tbody></table>\n'
+};
+
+function insertSnippet(type) {
+  const ta = document.getElementById('post-content');
+  const pos = ta.selectionStart;
+  ta.value = ta.value.slice(0,pos) + SNIPPETS[type] + ta.value.slice(pos);
+}
+
+let previewOpen = false;
+function togglePreview() {
+  previewOpen = !previewOpen;
+  const ta = document.getElementById('post-content');
+  const preview = document.getElementById('preview-content');
+  const modal = document.getElementById('preview-modal');
+  if (previewOpen) {
+    preview.innerHTML = ta.value || '<p style="color:var(--ink4)">Nothing to preview yet.</p>';
+    modal.style.display = 'block';
+    document.getElementById('preview-btn').textContent = 'Close preview';
+  } else {
+    modal.style.display = 'none';
+    document.getElementById('preview-btn').textContent = 'Preview';
+  }
+}
+
+// ── TOGGLE ──
+function toggleBtn(el) { el.classList.toggle('on'); }
+
+// ── MODAL ──
+let modalCallback = null;
+function showConfirmModal(title, sub, cb) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-sub').textContent = sub;
+  modalCallback = cb;
+  document.getElementById('modal-confirm').onclick = cb;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+// ── TOAST ──
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = ''; }, 2800);
+}
+</script>
+
+<!-- SETUP GUIDE (shown only in demo mode) -->
+<div id="setup-guide" style="position:fixed;bottom:0;left:0;right:0;background:#1a1a14;border-top:1px solid rgba(251,191,36,0.3);padding:12px 24px;z-index:50;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+  <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#fbbf24">Demo mode</div>
+  <div style="font-size:12px;color:#a8a49e;flex:1">Firebase not connected. Data resets on refresh. <strong style="color:#f0ede8">To go live:</strong> create a free Firebase project → replace config above → enable Firestore + Auth → add admin email.</div>
+  <a href="https://console.firebase.google.com" target="_blank" style="font-size:12px;color:#4ade80;font-weight:600;text-decoration:none;padding:6px 12px;border:1px solid rgba(74,222,128,0.3);border-radius:6px;white-space:nowrap">Open Firebase Console →</a>
+  <button onclick="document.getElementById('setup-guide').style.display='none'" style="background:none;border:none;color:#6a6762;cursor:pointer;font-size:16px">✕</button>
+</div>
+
+<script>
+// Hide setup guide if Firebase configured
+if (!DEMO_MODE) document.getElementById('setup-guide').style.display = 'none';
+</script>
+</body>
+</html>
